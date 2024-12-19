@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.milkTea.mapper.MProductMapper">
+
+    <resultMap type="mProductView" id="ProductResult">
+        <result property="id"    column="id"    />
+        <result property="categoryName"    column="category_name"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="name"    column="name"    />
+        <result property="price"    column="price"    />
+        <result property="description"    column="description"    />
+        <result property="imgUrl"    column="img_url"    />
+        <result property="createTime"    column="create_time"    />
+        <collection property="productInventoryList" javaType="list" ofType="mProductInventory">
+            <result property="num" column="num" />
+            <result property="productId" column="product_id" />
+            <result property="inventoryId" column="inventory_id" />
+        </collection>
+    </resultMap>
+
+    <sql id="selectProduct">
+        SELECT
+            p.id,
+            p.`name`,
+            p.price,
+            p.img_url,
+            p.description,
+            p.create_time,
+            c.`name` category_name
+        FROM
+            m_product p
+        LEFT JOIN m_category c ON p.category_id = c.id
+    </sql>
+
+    <sql id="selectProductInventory">
+        SELECT
+            p.id,
+            p.name,
+            p.price,
+            pi.num,
+            pi.inventory_id
+        FROM
+            m_product p
+        LEFT JOIN m_product_inventory pi ON p.id = pi.product_id
+    </sql>
+
+    <select id="selectMProductList" resultMap="ProductResult" parameterType="mProduct">
+        <include refid="selectProduct" />
+        <where>
+            <if test="categoryId != null">and p.category_id = #{categoryId}</if>
+            <if test="name != null">and p.`name` LIKE concat('%', #{name},'%')</if>
+        </where>
+    </select>
+
+    <select id="selectProductInventoryByProductId" resultMap="ProductResult" parameterType="integer">
+        <include refid="selectProductInventory" />
+        where p.id = #{id}
+    </select>
+
+</mapper>

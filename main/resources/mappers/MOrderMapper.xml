@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.milkTea.mapper.MOrderMapper">
+
+    <resultMap type="mOrderView" id="OrderResult">
+        <result property="id"    column="id"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="totalPrice"    column="total_price"    />
+        <result property="status"    column="status"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="userName" column="user_name" />
+    </resultMap>
+
+    <resultMap id="OrderViewResult" type="mOrderView" extends="OrderResult">
+        <collection property="orderDetailViewList" javaType="list" ofType="mOrderDetailView">
+            <result property="num" column="num" />
+            <result property="id" column="order_detail_id" />
+            <result property="productId" column="product_id" />
+            <result property="productPrice" column="product_price" />
+            <result property="productImgUrl" column="product_img_url" />
+            <result property="productName" column="product_name" />
+        </collection>
+    </resultMap>
+
+    <resultMap id="CommonViewResult" type="commonView">
+        <result property="orderNum" column="order_num" />
+        <result property="totalNum" column="total_num" />
+        <result property="inventoryName" column="inventory_name" />
+    </resultMap>
+
+    <sql id="selectOrderView">
+        SELECT
+            o.id,
+            o.order_no,
+            o.total_price,
+            o.`status`,
+            o.create_time,
+            od.id order_detail_id,
+            od.num,
+            od.price product_price,
+            p.`name` product_name,
+            p.img_url product_img_url
+        FROM
+            m_order o
+        LEFT JOIN m_order_detail od ON o.order_no = od.order_no
+        LEFT JOIN m_product p ON od.product_id = p.id
+    </sql>
+
+    <sql id="selectOrder">
+        SELECT
+            o.id,
+            o.order_no,
+            o.total_price,
+            o.`status`,
+            o.create_time,
+            u.user_name
+        FROM
+            m_order o
+        LEFT JOIN m_user u ON o.user_id = u.id
+    </sql>
+
+    <select id="selectOrderListView" resultMap="OrderViewResult" parameterType="mOrder">
+        <include refid="selectOrderView" />
+        <where>
+            <if test="userId != null">and o.user_id = #{userId}</if>
+        </where>
+        order by o.create_time desc
+    </select>
+
+    <select id="selectOrderViewByOrderNo" resultMap="OrderViewResult" parameterType="string">
+        <include refid="selectOrderView" />
+        where o.order_no = #{orderNo}
+    </select>
+
+    <select id="selectOrderList" resultMap="OrderResult" parameterType="mOrder">
+        <include refid="selectOrder" />
+        <where>
+            <if test="orderNo != null">and o.order_no = #{orderNo}</if>
+            <if test="status != null">and o.status = #{status}</if>
+        </where>
+        order by o.create_time desc
+    </select>
+
+    <select id="selectOrderNum" resultMap="CommonViewResult" parameterType="mOrder">
+        SELECT COUNT(0) as order_num FROM m_order where DATE_FORMAT(create_time,'%Y/%m/%d') = DATE_FORMAT(#{createTime},'%Y/%m/%d')
+    </select>
+
+    <select id="selectInventoryNum" parameterType="mOrder" resultMap="CommonViewResult">
+        SELECT
+            i.`name` inventory_name,
+            od.num AS order_num,
+            pi.num AS inventory_num,
+            SUM( od.num * pi.num ) total_num
+        FROM
+            m_order_detail od
+                LEFT JOIN m_product_inventory pi ON od.product_id = pi.product_id
+                LEFT JOIN m_inventory i ON pi.inventory_id = i.id
+        WHERE
+            DATE_FORMAT(od.create_time, '%Y%m%d%H' ) = DATE_FORMAT(#{createTime}, '%Y%m%d%H')
+        GROUP BY
+            i.`name`
+    </select>
+
+
+</mapper>
